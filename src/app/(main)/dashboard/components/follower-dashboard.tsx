@@ -34,7 +34,7 @@ export function FollowerDashboard() {
   const { toast } = useToast();
   const [isAddTradeOpen, setAddTradeOpen] = useState(false);
 
-  const [tradeDetails, setTradeDetails] = useState({
+  const [tradeDetails, setTradeDetails] = useState<{ symbol: string; side: 'Buy' | 'Sell'; quantity: string; price: string }>({
     symbol: '',
     side: 'Buy',
     quantity: '',
@@ -98,7 +98,7 @@ export function FollowerDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="side">Side</Label>
-                    <Select value={tradeDetails.side} onValueChange={(value) => setTradeDetails(prev => ({...prev, side: value}))}>
+                    <Select value={tradeDetails.side} onValueChange={(value: 'Buy' | 'Sell') => setTradeDetails(prev => ({...prev, side: value}))}>
                       <SelectTrigger id="side">
                         <SelectValue placeholder="Select side" />
                       </SelectTrigger>

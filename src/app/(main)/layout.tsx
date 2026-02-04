@@ -55,7 +55,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
+          <header className="flex h-12 sm:h-14 items-center gap-3 sm:gap-4 border-b bg-card px-3 sm:px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
             <SidebarTrigger className="md:hidden" />
             <div className="w-full flex-1">
               {/* Can add a global search here if needed */}
@@ -83,7 +83,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 pb-24 md:pb-6 container">
             <AuthGuard>{children}</AuthGuard>
           </main>
         </SidebarInset>
