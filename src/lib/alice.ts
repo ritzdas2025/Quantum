@@ -23,37 +23,62 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 
   throw new Error('Unreachable');
 }
 
-export function buildAuthHeaders(apiKey: string, apiSecret: string, method: string | undefined, url: string, body?: string, bearerToken?: string) {
+export function buildAuthHeaders(apiKey: string, apiSecret: string, method: string | undefined, url: string, body?: string, bearerToken?: string, sessionId?: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   // Bearer token takes precedence
   if (bearerToken) {
     headers['Authorization'] = `Bearer ${bearerToken}`;
-    return headers;
   }
 
   const authMethod = (method || 'headers').toLowerCase();
 
-  if (authMethod === 'basic') {
-    headers['Authorization'] = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
-  } else if (authMethod === 'hmac') {
-    // Generic HMAC implementation: provider specifics may vary — adapt to Alice Blue docs as necessary
-    const ts = Math.floor(Date.now() / 1000).toString();
-    const urlObj = new URL(url);
-    const path = urlObj.pathname + (urlObj.search || '');
-    const payload = body ?? '';
-    const toSign = `${ts}:${path}:${payload}`;
-    const signature = crypto.createHmac('sha256', apiSecret).update(toSign).digest('hex');
-    headers['x-api-key'] = apiKey;
-    headers['x-timestamp'] = ts;
-    headers['x-signature'] = signature;
-  } else {
-    // default: custom headers
-    headers['x-api-key'] = apiKey;
-    headers['x-api-secret'] = apiSecret;
+  if (!bearerToken) {
+    if (authMethod === 'basic') {
+      headers['Authorization'] = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
+    } else if (authMethod === 'hmac') {
+      // Generic HMAC implementation: provider specifics may vary — adapt to Alice Blue docs as necessary
+      const ts = Math.floor(Date.now() / 1000).toString();
+      const urlObj = new URL(url);
+      const path = urlObj.pathname + (urlObj.search || '');
+      const payload = body ?? '';
+      const toSign = `${ts}:${path}:${payload}`;
+      const signature = crypto.createHmac('sha256', apiSecret).update(toSign).digest('hex');
+      headers['x-api-key'] = apiKey;
+      headers['x-timestamp'] = ts;
+      headers['x-signature'] = signature;
+    } else {
+      // default: custom headers
+      if (apiKey) headers['x-api-key'] = apiKey;
+      if (apiSecret) headers['x-api-secret'] = apiSecret;
+    }
+  }
+
+  // Session ID header (Alice uses a Session ID for authenticated calls). Allow configurable header name.
+  if (sessionId) {
+    const headerName = (process.env.ALICE_SESSION_HEADER_NAME || 'x-session-id').toLowerCase();
+    headers[headerName] = sessionId;
   }
 
   return headers;
+}
+
+/**
+ * Obtain a Session ID (SID) from Alice Blue using user credentials.
+ * This is sensitive — do not log or store raw credentials in production.
+ */
+export async function obtainSessionId({ userId, password, twoFA, appId } : { userId: string; password: string; twoFA: string; appId: string }) : Promise<string> {
+  const sidEndpoint = process.env.ALICE_SID_ENDPOINT || 'https://ant.aliceblueonline.com/rest/AliceBlueAPIService/api/customer/getUserSID';
+  const body = JSON.stringify({ userId, password, twoFA, appId });
+
+  const res = await fetchWithRetry(sidEndpoint, { method: 'POST', body, headers: { 'Content-Type': 'application/json' } });
+  const payload = await res.json().catch(() => ({}));
+
+  if (payload && (payload.stat === 'Ok' || payload.sessionID || payload.sessionId)) {
+    return payload.sessionID || payload.sessionId;
+  }
+
+  throw new Error(`Failed to obtain SID: ${JSON.stringify(payload)}`);
 }
 
 export async function getMasterTrades(): Promise<AliceTrade[]> {
