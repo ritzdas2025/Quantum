@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 export function MasterDashboard() {
-  const { followerAccounts } = useAccount();
+  const { followerAccounts, brokerAccounts } = useAccount();
   const previewCount = 6;
 
   return (
@@ -33,6 +33,54 @@ export function MasterDashboard() {
           <TradesTable />
         </CardContent>
       </Card>
+
+      {/* Broker accounts summary */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold">Broker Accounts</h2>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm">
+              <Link href="/configuration">Manage Brokers</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {brokerAccounts.length > 0 ? (
+            brokerAccounts.map((b) => (
+              <Card key={b.id}>
+                <CardHeader>
+                  <CardTitle>{b.name}</CardTitle>
+                  <CardDescription>{b.brokerUrl}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="font-mono">{b.status}{b.sessionId ? ` • SID ${b.sessionId.slice(0,6)}...` : ''}</span>
+                    </div>
+                    {b.lastError && <div className="text-sm text-destructive">{b.lastError}</div>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card className="md:col-span-2 lg:col-span-3">
+              <CardHeader>
+                <CardTitle>No Broker Accounts</CardTitle>
+                <CardDescription>
+                  Add a broker account to connect your master account (Alice Blue supported).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <Link href="/configuration">Add Broker</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {/* Followers summary below trades */}
       <div>

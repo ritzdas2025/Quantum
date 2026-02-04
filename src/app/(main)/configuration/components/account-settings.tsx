@@ -196,11 +196,160 @@ function AddFollowerDialog() {
     )
 }
 
+function AddBrokerDialog() {
+    const { addBroker, connectBroker } = useAccount();
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState('Alice Blue');
+    const [brokerUrl, setBrokerUrl] = useState('https://a3.aliceblueonline.com');
+    const [apiKey, setApiKey] = useState('');
+    const [apiSecret, setApiSecret] = useState('');
+    const [appId, setAppId] = useState('');
+    const [userId, setUserId] = useState('');
+    const [password, setPassword] = useState('');
+    const [twoFA, setTwoFA] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleAdd = async () => {
+        if (!name || !brokerUrl) {
+            toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide a broker name and URL.' });
+            return;
+        }
+        const res = addBroker({ name, brokerUrl, apiKey, apiSecret, appId, userId, password, twoFA });
+        if (!res.success) {
+            toast({ variant: 'destructive', title: 'Error', description: res.message });
+            return;
+        }
+        // Attempt to connect if credentials provided
+        if (userId && password && appId) {
+            setLoading(true);
+            const conn = await connectBroker(res.id!);
+            setLoading(false);
+            if (!conn.success) {
+                toast({ variant: 'destructive', title: 'Connection failed', description: conn.message });
+            }
+        }
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Card className="border-dashed flex items-center justify-center hover:border-primary transition-colors cursor-pointer min-h-[260px]">
+                <div className="text-center text-muted-foreground">
+                    <PlusCircle className="mx-auto h-12 w-12" />
+                    <h3 className="mt-4 text-lg font-medium text-foreground">Add Broker</h3>
+                    <p className="mt-1 text-sm">Connect a master broker account (Alice Blue)</p>
+                </div>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add Broker Account</DialogTitle>
+              <DialogDescription>Provide broker connection details. Stored locally for now (dev only).</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label>Broker Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label>Broker URL</Label>
+                    <Input value={brokerUrl} onChange={(e) => setBrokerUrl(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label>App ID (Alice)</Label>
+                    <Input value={appId} onChange={(e) => setAppId(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>User ID</Label>
+                        <Input value={userId} onChange={(e) => setUserId(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Password</Label>
+                        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label>2FA (DOB DDMMYYYY or PIN)</Label>
+                    <Input value={twoFA} onChange={(e) => setTwoFA(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>API Key</Label>
+                        <Input value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>API Secret</Label>
+                        <Input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} />
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="ghost">Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleAdd} disabled={loading}>{loading ? 'Connecting...' : 'Add Broker'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    );
+}
+
 export function AccountSettings() {
-  const { followerAccounts, removeFollower } = useAccount();
+  const { followerAccounts, removeFollower, brokerAccounts, removeBroker, connectBroker } = useAccount();
 
   return (
     <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Broker Accounts</h3>
+        <div className="grid gap-6 md:grid-cols-2">
+          {brokerAccounts.map((b) => (
+            <Card key={b.id}>
+              <CardHeader>
+                <CardTitle>{b.name}</CardTitle>
+                <CardDescription>{b.brokerUrl}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="font-mono">{b.status}{b.sessionId ? ` • SID ${b.sessionId.slice(0,6)}...` : ''}</span>
+                  </div>
+                  {b.lastError && <div className="text-sm text-destructive">{b.lastError}</div>}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                <Button onClick={() => connectBroker(b.id)} size="sm">Connect</Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Remove</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the broker configuration from this app.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => removeBroker(b.id)}>
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardFooter>
+            </Card>
+          ))}
+          <AddBrokerDialog />
+        </div>
+      </div>
+
+      <hr className="my-6" />
+
       <div>
         <h3 className="text-lg font-medium mb-4">Follower Accounts</h3>
         <div className="grid gap-6 md:grid-cols-2">

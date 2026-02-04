@@ -73,6 +73,23 @@ export type Trade = {
   isNew?: boolean;
 };
 
+export type BrokerAccount = {
+  id: string; // unique id like ALICE-1
+  name: string; // friendly name
+  brokerUrl: string;
+  apiKey?: string;
+  apiSecret?: string;
+  appId?: string;
+  userId?: string;
+  password?: string; // dev-only local storage; recommend not used in production
+  twoFA?: string; // e.g., DOB
+  sessionId?: string; // SID once connected
+  status: 'Disconnected' | 'Connecting' | 'Connected' | 'Error';
+  lastError?: string;
+};
+
+export const brokerAccounts: BrokerAccount[] = [];
+
 // This is a mix of real master trades and some follower trades for simulation
 export const trades: Trade[] = [
     { id: 'T001', timestamp: '10:30:05', account: 'Master', symbol: 'RELIANCE', type: 'Market', side: 'Buy', quantity: 100, price: 2850.50, status: 'Filled' },
